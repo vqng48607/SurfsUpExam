@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SurfsUpExam.Data;
 using SurfsUpExam.Models;
@@ -20,9 +22,96 @@ namespace SurfsUpExam.Controllers
         }
 
         // GET: SurfsBoards
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string sortOrder,string currentFilter, string searchString, int? pageNumber)
         {
-            return View(await _context.SurfsBoard.ToListAsync());
+            //Sorter funktionen: kan også ses i viewet index
+            ViewData["CurrentSort"] = sortOrder;
+            ViewData["NameSortParm"] = string.IsNullOrEmpty(sortOrder) ? "Name_Desc" : "";
+            ViewData["LengthSortParm"] = sortOrder == "Length" ? "Length_Desc" : "Length";
+            ViewData["WidthSortParm"] = sortOrder == "Width" ? "Width_Desc" : "Width";
+            ViewData["ThicknessSortParm"] = sortOrder == "Thickness" ? "Thickness_Desc" : "Thickness";
+            ViewData["VolumeSortParm"] = sortOrder == "Volume" ? "Volume_Desc" : "Volume";
+            ViewData["BoardTypeSortParm"] = sortOrder == "BoardType" ? "BoardType_Desc" : "BoardType";
+            ViewData["PriceSortParm"] = sortOrder == "Price" ? "Price_Desc" : "Price";
+
+            //PaginatedList: nederst i index er der ting. Dette gør at man kan tykke next og tidligere. Her vil den blive grå hvis der så ikke er noget
+            if (searchString != null)
+            {
+                pageNumber = 1;
+            }
+            else
+            {
+                searchString = currentFilter;
+            }
+
+            //Filtre: kan også ses i viewet index
+            ViewData["CurrentFilter"] = searchString;
+
+
+            var surfsBoard = from s in _context.SurfsBoard
+                             select s;
+
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                surfsBoard = surfsBoard.Where(b => b.Name.ToLower().Contains(searchString) ||
+                                           b.Length.ToString().Contains(searchString) ||
+                                           b.Width.ToString().Contains(searchString) ||
+                                           b.Thickness.ToString().Contains(searchString) ||
+                                           b.Volume.ToString().Contains(searchString) ||
+                                           b.BoardType.ToString().ToLower().Contains(searchString) ||
+                                           String.IsNullOrEmpty(b.Equipment) == false && b.Equipment.ToLower().Contains(searchString) ||
+                                           b.Price.ToString().Contains(searchString));
+            }
+
+            switch (sortOrder)
+            {
+                case "Name_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Name);
+                    break;
+                case "Length":
+                    surfsBoard = surfsBoard.OrderBy(s => s.Length);
+                    break;
+                case "Length_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Length);
+                    break;
+                case "Width":
+                    surfsBoard = surfsBoard.OrderBy(s => s.Width);
+                    break;
+                case "Width_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Width);
+                    break;
+                case "Thickness":
+                    surfsBoard = surfsBoard.OrderBy(s => s.Thickness);
+                    break;
+                case "Thickness_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Thickness);
+                    break;
+                case "Volume":
+                    surfsBoard = surfsBoard.OrderBy(s => s.Volume);
+                    break;
+                case "Volume_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Volume);
+                    break;
+                case "BoardType":
+                    surfsBoard = surfsBoard.OrderBy(s => s.BoardType);
+                    break;
+                case "BoardType_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.BoardType);
+                    break;
+                case "Price":
+                    surfsBoard = surfsBoard.OrderBy(s => s.Price);
+                    break;
+                case "Price_Desc":
+                    surfsBoard = surfsBoard.OrderByDescending(s => s.Price);
+                    break;
+                default:
+                    surfsBoard = surfsBoard.OrderBy(s => s.Name);
+                    break;
+            }
+
+            //PaginatedList
+            int pageSize = 1;
+            return View(await PaginatedList<SurfsBoard>.CreateAsync(surfsBoard.AsNoTracking(), pageNumber ?? 1, pageSize));
         }
 
         // GET: SurfsBoards/Details/5
