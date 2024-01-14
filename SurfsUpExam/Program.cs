@@ -1,3 +1,6 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using SurfsUpExam.Data;
 namespace SurfsUpExam
 {
     public class Program
@@ -5,6 +8,8 @@ namespace SurfsUpExam
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddDbContext<SurfsUpExamContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("SurfsUpExamContext") ?? throw new InvalidOperationException("Connection string 'SurfsUpExamContext' not found.")));
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
